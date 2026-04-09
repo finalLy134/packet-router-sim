@@ -8,5 +8,8 @@ int main() {
 
 	process_packets(packets, routes);
 
+	free_trie(routes);
+	free_heap(packets);
+
 	return 0;
 }
