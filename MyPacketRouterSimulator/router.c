@@ -88,54 +88,149 @@ trie_node* load_routes(char* file_name) {
     return root;
 }
 
-router_stats process_packets(priority_queue* pq, trie_node* root) {
+hashtable* load_devices(char* file_name) {
+    FILE* fp = fopen(file_name, "r");
+
+    if (fp == NULL) {
+        printf("Could not open file %s for device loading.", file_name);
+        return NULL;
+    }
+
+    char buff[128];
+
+    hashtable* table = create_hashtable();
+
+    if (table == NULL) {
+        printf("Out of memory.\n");
+        fclose(fp);
+        return NULL;
+    }
+
+    while (fgets(buff, sizeof(buff), fp)) {
+        char device_ip[32], mac[18];
+
+        sscanf_s(buff, "%s %s", device_ip, 32, mac, 18);
+        put(table, parse_ip(device_ip), mac);
+    }
+
+    fclose(fp);
+    return table;
+}
+
+packet_result resolve_packet(packet* cur, trie_node* root, hashtable* devices, char* eth_out, char* mac_out) {
+    packet_result result;
+    
+    char* eth = search(root, cur->dest);
+    char* mac = get(devices, cur->dest);
+
+    result.has_route = (eth != NULL);
+    result.has_mac = (mac != NULL);
+
+    if (eth) strcpy_s(eth_out, 16, eth);
+    else     strcpy_s(eth_out, 16, "NONE");
+
+    if (mac) strcpy_s(mac_out, MAC_SIZE, mac);
+    else     strcpy_s(mac_out, MAC_SIZE, "NONE");
+
+    return result;
+}
+
+void print_packet(int count, packet* cur, const char* eth, const char* mac, packet_result res) {
+    char src[32], dest[32];
+    stringify_ip(cur->src, src, sizeof(src));
+    stringify_ip(cur->dest, dest, sizeof(dest));
+
+    const char* status;
+
+    if (!res.has_route)     status = "DROPPED";
+    else if (!res.has_mac)  status = "ROUTED";
+    else                    status = "DELIVERED";
+
+    const char* priority = cur->priority == HIGH ? "HIGH" : "LOW";
+
+    printf("[PACKET #%03d] | %-16s -> %-16s | ETH=%-4s MAC=%-17s | %-4s | %-5d | %s\n",
+        count,
+        src,
+        dest,
+        eth,
+        mac,
+        priority,
+        cur->size,
+        status
+    );
+}
+
+void update_stats(router_stats* stats, packet* cur, const char* eth, packet_result res) {
+    if (!res.has_route) {
+        stats->dropped++;
+        stats->bytes_dropped += cur->size;
+    }
+    else {
+        stats->routed++;
+
+        int eth_index = eth[3] - '0';
+        stats->eth_counts[eth_index]++;
+        stats->bytes_routed += cur->size;
+
+        if (res.has_mac) {
+            stats->delivered++;
+            stats->bytes_delivered += cur->size;
+        }
+        else {
+            stats->no_mac++;
+        }
+    }
+
+    stats->packet_count_by_type[cur->priority]++;
+}
+
+router_stats process_packets(priority_queue* pq, trie_node* root, hashtable* devices) {
     router_stats stats = { 0 };
     int count = 1;
 
     while (!heap_is_empty(pq)) {
         packet cur = dequeue(pq);
-        char src[32], dest[32];
-        stringify_ip(cur.src, src, sizeof(src));
-        stringify_ip(cur.dest, dest, sizeof(dest));
 
-        char* eth = search(root, cur.dest);
-        char* eth_str = eth != NULL ? eth : "----";
-        char* status = eth != NULL ? "ROUTED" : "DROPPED";
-        char* priority = cur.priority == HIGH ? "HIGH" : "LOW";
+        char eth[16];
+        char mac[MAC_SIZE];
 
-        printf("[PACKET #%03d] %-16s -> %-16s -> %-6s | Priority: %-4s | Size: %4d | %s\n",
-            count, src, dest, eth_str, priority, cur.size, status);
+        packet_result result = resolve_packet(&cur, root, devices, eth, mac);
+        print_packet(count, &cur, eth, mac, result);
+        update_stats(&stats, &cur, eth, result);
 
-        if (eth != NULL) {
-            stats.routed++;
-            stats.bytes_routed += cur.size;
-            int eth_index = eth[3] - '0';
-            stats.eth_counts[eth_index]++;
-        }
-        else {
-            stats.dropped++;
-            stats.bytes_dropped += cur.size;
-        }
-
-        stats.packet_count_by_type[cur.priority]++;
         count++;
     }
+
     return stats;
 }
 
-void print_stats(router_stats stats) {
-    int total = stats.routed + stats.dropped;
-    int busiest_eth = 0;
+void print_stats(router_stats s) {
+    int total = s.dropped + s.no_mac + s.delivered;
+
+    int busiest = 0;
     for (int i = 1; i < 4; i++)
-        if (stats.eth_counts[i] > stats.eth_counts[busiest_eth])
-            busiest_eth = i;
+        if (s.eth_counts[i] > s.eth_counts[busiest])
+            busiest = i;
 
     printf("\n--- Routing Stats -----------------------------------------------\n");
-    printf("  Packets   : %d total, %d routed, %d dropped\n", total, stats.routed, stats.dropped);
-    printf("  Bytes     : %d routed, %d dropped\n", stats.bytes_routed, stats.bytes_dropped);
-    printf("  Priority  : %d HIGH, %d LOW\n", stats.packet_count_by_type[HIGH], stats.packet_count_by_type[LOW]);
-    printf("\n");
+
+    printf("  Packets  : TOTAL=%d | DELIVERED=%d | NO_MAC=%d | DROPPED=%d\n",
+        total, s.delivered, s.no_mac, s.dropped);
+
+    printf("  Bytes    : DELIVERED=%d | DROPPED=%d\n",
+        s.bytes_delivered, s.bytes_dropped);
+
+    printf("  Priority : HIGH=%d | LOW=%d\n",
+        s.packet_count_by_type[HIGH],
+        s.packet_count_by_type[LOW]);
+
+    printf("\n  Interfaces:\n");
+
     for (int i = 0; i < 4; i++)
-        printf("  eth%d : %d packets%s\n", i, stats.eth_counts[i], i == busiest_eth ? " <- busiest" : "");
+        printf("    eth%d : %-4d %s\n",
+            i,
+            s.eth_counts[i],
+            (i == busiest ? "<- busiest" : ""));
+
     printf("-----------------------------------------------------------------\n");
 }

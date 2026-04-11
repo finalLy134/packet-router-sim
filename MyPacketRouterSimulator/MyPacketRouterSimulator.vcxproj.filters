@@ -30,6 +30,9 @@
     <ClCompile Include="router.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="hashtable.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="trie.h">
@@ -44,9 +47,13 @@
     <ClInclude Include="router.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="hashtable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="packets.txt" />
     <Text Include="routes.txt" />
+    <Text Include="devices.txt" />
   </ItemGroup>
 </Project>

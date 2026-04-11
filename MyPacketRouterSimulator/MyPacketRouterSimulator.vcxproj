@@ -123,6 +123,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="hashtable.c" />
     <ClCompile Include="pq.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="packet.c" />
@@ -130,12 +131,14 @@
     <ClCompile Include="trie.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="hashtable.h" />
     <ClInclude Include="pq.h" />
     <ClInclude Include="packet.h" />
     <ClInclude Include="router.h" />
     <ClInclude Include="trie.h" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="devices.txt" />
     <Text Include="packets.txt" />
     <Text Include="routes.txt" />
   </ItemGroup>
