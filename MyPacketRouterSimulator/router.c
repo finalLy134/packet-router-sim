@@ -143,7 +143,7 @@ void print_packet(int count, packet* cur, const char* eth, const char* mac, pack
     const char* status;
 
     if (!res.has_route)     status = "DROPPED";
-    else if (!res.has_mac)  status = "ROUTED";
+    else if (!res.has_mac)  status = "NO_MAC";
     else                    status = "DELIVERED";
 
     const char* priority = cur->priority == HIGH ? "HIGH" : "LOW";
@@ -166,11 +166,8 @@ void update_stats(router_stats* stats, packet* cur, const char* eth, packet_resu
         stats->bytes_dropped += cur->size;
     }
     else {
-        stats->routed++;
-
         int eth_index = eth[3] - '0';
         stats->eth_counts[eth_index]++;
-        stats->bytes_routed += cur->size;
 
         if (res.has_mac) {
             stats->delivered++;
@@ -178,6 +175,7 @@ void update_stats(router_stats* stats, packet* cur, const char* eth, packet_resu
         }
         else {
             stats->no_mac++;
+            stats->bytes_no_mac += cur->size;
         }
     }
 
@@ -217,8 +215,8 @@ void print_stats(router_stats s) {
     printf("  Packets  : TOTAL=%d | DELIVERED=%d | NO_MAC=%d | DROPPED=%d\n",
         total, s.delivered, s.no_mac, s.dropped);
 
-    printf("  Bytes    : DELIVERED=%d | DROPPED=%d\n",
-        s.bytes_delivered, s.bytes_dropped);
+    printf("  Bytes    : DELIVERED=%d | NO_MAC=%d | DROPPED=%d\n",
+        s.bytes_delivered, s.bytes_no_mac, s.bytes_dropped);
 
     printf("  Priority : HIGH=%d | LOW=%d\n",
         s.packet_count_by_type[HIGH],

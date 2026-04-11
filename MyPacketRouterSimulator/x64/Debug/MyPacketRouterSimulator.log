@@ -1,8 +1,4 @@
-﻿  main.c
-  router.c
+﻿  router.c
 C:\Development\C\MyPacketRouterSimulator\MyPacketRouterSimulator\router.c(58,9): warning C4033: 'load_routes' must return a value
-C:\Development\C\MyPacketRouterSimulator\MyPacketRouterSimulator\router.c(138,91): warning C4028: formal parameter 5 different from declaration
-C:\Development\C\MyPacketRouterSimulator\MyPacketRouterSimulator\router.c(163,84): warning C4028: formal parameter 4 different from declaration
-  Generating Code...
 C:\Development\C\MyPacketRouterSimulator\MyPacketRouterSimulator\router.c(89,1): warning C4715: 'load_routes': not all control paths return a value
   MyPacketRouterSimulator.vcxproj -> C:\Development\C\MyPacketRouterSimulator\x64\Debug\MyPacketRouterSimulator.exe

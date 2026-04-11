@@ -6,13 +6,14 @@
 #include "hashtable.h"
 
 typedef struct router_stats {
-    int routed;
     int dropped;
     int no_mac;
     int delivered;
-    int bytes_routed;
+
     int bytes_dropped;
+    int bytes_no_mac;
     int bytes_delivered;
+
     int packet_count_by_type[2]; // LOW and HIGH
     int eth_counts[4];           // 0 -> eth0, 1 -> eth1, until eth3...
 } router_stats;
