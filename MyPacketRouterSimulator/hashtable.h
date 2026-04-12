@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define TABLE_SIZE 128
+#define TABLE_SIZE 257
 #define MAC_SIZE 18
 
 typedef struct node {

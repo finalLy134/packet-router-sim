@@ -1,7 +1,5 @@
 #include "router.h"
 
-#include <stdio.h>
-
 int main() {
 	trie_node* routes = load_routes("routes.txt");
 	priority_queue* packets = load_packets("packets.txt");
@@ -13,6 +11,7 @@ int main() {
 
 	free_trie(routes);
 	free_heap(packets);
+	free_hashtable(devices);
 
 	return 0;
 }
